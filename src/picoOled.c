@@ -25,8 +25,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-
-
 #include "pico.h"
 #include <stdio.h>
 #include <string.h>
@@ -35,9 +33,9 @@ SOFTWARE.
 #include "hardware/i2c.h"
 #include "hardware/timer.h"
 #include "pico/stdlib.h"
-#include "picoOled.h"
+#include "../include/picoOled.h"
 
-static const uint8_t oled_font6x8 [] = {
+static const uint8_t oled_font6x8[] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // sp
     0x00, 0x00, 0x00, 0x2f, 0x00, 0x00, // !
     0x00, 0x00, 0x07, 0x00, 0x07, 0x00, // "
@@ -143,11 +141,14 @@ static const uint8_t oled_font6x8 [] = {
     0x00, 0x7E, 0x01, 0x49, 0x55, 0x73, // ß
 };
 
-void oledLogI2cResult(int rtnCode, char *msg){
+void oledLogI2cResult(int rtnCode, char *msg)
+{
 
-    if (strlen(msg) > 0) printf("user msg: %s\n", msg);
+    if (strlen(msg) > 0)
+        printf("user msg: %s\n", msg);
 
-    switch (rtnCode) {
+    switch (rtnCode)
+    {
     case PICO_ERROR_GENERIC:
         printf("Adr not acknowledged!\n");
         break;
@@ -160,16 +161,19 @@ void oledLogI2cResult(int rtnCode, char *msg){
     }
 }
 
-void  oledLogI2cData(uint8_t *buffer, int bufSize){
-int lines, cols;
-int bufIndex, i, j;
+void oledLogI2cData(uint8_t *buffer, int bufSize)
+{
+    int lines, cols;
+    int bufIndex, i, j;
 
     bufIndex = 0;
     printf("************************************************\n");
     printf("I2C data: \n");
-    if (bufSize & 0x0F){
+    if (bufSize & 0x0F)
+    {
         cols = bufSize & 0x0F;
-        for (i = 0; i < cols; i++){
+        for (i = 0; i < cols; i++)
+        {
             printf("%02x ", buffer[i]);
         }
         printf("\n");
@@ -177,57 +181,63 @@ int bufIndex, i, j;
         bufIndex = i;
     }
 
-    if (bufSize > 0){
+    if (bufSize > 0)
+    {
         cols = 0;
-        for(i = 0; i < bufSize; i++){
+        for (i = 0; i < bufSize; i++)
+        {
             printf("%02x ", buffer[bufIndex]);
             bufIndex++;
             cols++;
-            if ((cols & 15) == 0) printf("\n");
+            if ((cols & 15) == 0)
+                printf("\n");
         }
     }
     printf("************************************************\n");
-
 }
-void myI2cWriteBlocking(t_OledParams *oled, uint8_t *buf, uint16_t bufSize, char *msg){
-int rtnCode;
+void myI2cWriteBlocking(t_OledParams *oled, uint8_t *buf, uint16_t bufSize, char *msg)
+{
+    int rtnCode;
 
     rtnCode = i2c_write_blocking(oled->i2c, oled->i2c_address, buf, bufSize, false);
-    
-    if (DO_I2CERRLOGGING) oledLogI2cResult(rtnCode, msg);
-    if (DO_I2CDATLOGGING) oledLogI2cData(buf, bufSize);
+
+    if (DO_I2CERRLOGGING)
+        oledLogI2cResult(rtnCode, msg);
+    if (DO_I2CDATLOGGING)
+        oledLogI2cData(buf, bufSize);
 }
 
-uint8_t oledI2cConfig(t_OledParams *oled){
-// set up the i2c port hardware
+uint8_t oledI2cConfig(t_OledParams *oled)
+{
+    // set up the i2c port hardware
     i2c_init(oled->i2c, 400000);
     gpio_set_function(oled->SDA_PIN, GPIO_FUNC_I2C);
     gpio_set_function(oled->SCL_PIN, GPIO_FUNC_I2C);
     gpio_pull_up(oled->SDA_PIN);
     gpio_pull_up(oled->SCL_PIN);
 
-// set up the power on defaults for the OLED display
-    oled->fontInverted  = false;            // true if the font is inverted
-    oled->color         = WHITE;            // text color
-    oled->scaling       = NORMAL_SIZE;      // font size (DOUBLE or SINGLE)
-    oled->ttyMode       = false;            // true if display in tty text mode
-    oled->scroll_type   = NO_SCROLLING;
-    oled->X             = 0;                // current print position column
-    oled->Y             = 0;                // current print position line
+    // set up the power on defaults for the OLED display
+    oled->fontInverted = false;  // true if the font is inverted
+    oled->color = WHITE;         // text color
+    oled->scaling = NORMAL_SIZE; // font size (DOUBLE or SINGLE)
+    oled->ttyMode = false;       // true if display in tty text mode
+    oled->scroll_type = NO_SCROLLING;
+    oled->X = 0; // current print position column
+    oled->Y = 0; // current print position line
     oled->pages = ((oled->height + 7) / 8);
 
     oled->usingOffset = false;
-    if (oled->width == W_132){
+    if (oled->width == W_132)
+    {
         oled->width = W_128;
         oled->usingOffset = true;
     }
 
     oled->bufsize = (int16_t)(oled->pages * oled->width);
 
-// fire it up
+    // fire it up
     oledInit(oled);
 }
-
 
 void oledInit(t_OledParams *oled)
 {
@@ -238,55 +248,54 @@ void oledInit(t_OledParams *oled)
     if ((oled->width == 128) && (oled->height == 32))
     {
         // i2c_send(0xDA); // com pins hardware configuration
-        // i2c_send(0x02); 
+        // i2c_send(0x02);
         comPin0 = 0xDA; // com pins hardware configuration
-        comPin1 = 0x02; 
-
+        comPin1 = 0x02;
     }
     else if ((oled->width == 128) && (oled->height == 64))
     {
         // i2c_send(0xDA); // com pins hardware configuration
-        // i2c_send(0x12); 
+        // i2c_send(0x12);
         comPin0 = 0xDA; // com pins hardware configuration
-        comPin1 = 0x12; 
+        comPin1 = 0x12;
     }
     else if ((oled->width == 96) && (oled->height == 16))
     {
         // i2c_send(0xDA); // com pins hardware configuration
-        // i2c_send(0x02); 
+        // i2c_send(0x02);
         comPin0 = 0xDA; // com pins hardware configuration
-        comPin1 = 0x02; 
+        comPin1 = 0x02;
     }
 
     uint8_t params[] = {
-    0x00,                           // command
-    0xAE,                           // display off
-    0xD5,                           // clock divider
-    0x80, 
-    0xA8,                           // multiplex ratio
-    oled->height - 1, 
-    0xD3,                           // no display offset
-    0x00, 
-    0x40,                           // start line address=0
-    0x8D,                           // enable charge pump
-    0x14, 
-    0x20,                           // memory adressing mode=horizontal
-    0x00, 
-    0xA1,                           // segment remapping mode
-    0xC8,                           // COM output scan direction
-    comPin0,
-    comPin1,
-    0x81,                           // contrast control
-    0x80,
-    0xD9,                           // pre-charge period
-    0x22, 
-    0xDB,                           // set vcomh deselect level
-    0x20, 
-    0xA4,                           // output RAM to display
-    0xA6,                           // display mode A6=normal, A7=inverse
-    0x2E};                          // stop scrolling
+        0x00, // command
+        0xAE, // display off
+        0xD5, // clock divider
+        0x80,
+        0xA8, // multiplex ratio
+        oled->height - 1,
+        0xD3, // no display offset
+        0x00,
+        0x40, // start line address=0
+        0x8D, // enable charge pump
+        0x14,
+        0x20, // memory adressing mode=horizontal
+        0x00,
+        0xA1, // segment remapping mode
+        0xC8, // COM output scan direction
+        comPin0,
+        comPin1,
+        0x81, // contrast control
+        0x80,
+        0xD9, // pre-charge period
+        0x22,
+        0xDB, // set vcomh deselect level
+        0x20,
+        0xA4,  // output RAM to display
+        0xA6,  // display mode A6=normal, A7=inverse
+        0x2E}; // stop scrolling
 
-//    rtnCode = i2c_write_blocking(oled->i2c, oled->i2c_address, params, sizeof(params), false);
+    //    rtnCode = i2c_write_blocking(oled->i2c, oled->i2c_address, params, sizeof(params), false);
 
     myI2cWriteBlocking(oled, params, sizeof(params), "oledInit()");
 
@@ -296,8 +305,6 @@ void oledInit(t_OledParams *oled)
     // Clear and send buffer
     oledClear(oled, BLACK);
     oledDisplay(oled);
-
-
 }
 
 void oledSet_power(t_OledParams *oled, bool enable)
@@ -310,44 +317,47 @@ void oledSet_power(t_OledParams *oled, bool enable)
             0x8D,
             0x14,
             0xAF};
-//        i2c_write_blocking(oled->i2c, oled->i2c_address, cmd, sizeof(cmd), false);
+        //        i2c_write_blocking(oled->i2c, oled->i2c_address, cmd, sizeof(cmd), false);
         myI2cWriteBlocking(oled, cmd, sizeof(cmd), "oledSet_power()");
         // i2c_send(0x8D); // enable charge pump
         // i2c_send(0x14);
         // i2c_send(0xAF); // display on
-    } else {
+    }
+    else
+    {
         uint8_t cmd[] = {
             0x00,
             0xAE,
             0x8D,
             0x10};
-//        i2c_write_blocking(oled->i2c, oled->i2c_address, cmd, sizeof(cmd), false);
+        //        i2c_write_blocking(oled->i2c, oled->i2c_address, cmd, sizeof(cmd), false);
         myI2cWriteBlocking(oled, cmd, sizeof(cmd), "oledSet_power()");
         // i2c_send(0xAE); // display off
         // i2c_send(0x8D); // disable charge pump
         // i2c_send(0x10);
     }
-
 }
 
 void oledSet_invert(t_OledParams *oled, bool enable)
 {
-    if (enable){
+    if (enable)
+    {
         uint8_t cmd[] = {
             0x00,
             0xA7};
-//        i2c_write_blocking(oled->i2c, oled->i2c_address, cmd, sizeof(cmd), false);
+        //        i2c_write_blocking(oled->i2c, oled->i2c_address, cmd, sizeof(cmd), false);
         myI2cWriteBlocking(oled, cmd, sizeof(cmd), "oledSet_invert()");
-//        i2c_send(0xA7); // invert display
-    }  else {
+        //        i2c_send(0xA7); // invert display
+    }
+    else
+    {
         uint8_t cmd[] = {
             0x00,
             0xA6};
-//        i2c_write_blocking(oled->i2c, oled->i2c_address, cmd, sizeof(cmd), false);
+        //        i2c_write_blocking(oled->i2c, oled->i2c_address, cmd, sizeof(cmd), false);
         myI2cWriteBlocking(oled, cmd, sizeof(cmd), "oledSet_invert()");
-//        i2c_send(0xA6); // normal display
+        //        i2c_send(0xA6); // normal display
     }
-
 }
 
 void oledSet_scrolling(t_OledParams *oled, tScrollEffect scroll_type, uint8_t first_page, uint8_t last_page)
@@ -357,21 +367,23 @@ void oledSet_scrolling(t_OledParams *oled, tScrollEffect scroll_type, uint8_t fi
     // i2c_send(0x00); // command
     // i2c_send(0x2E); // deativate scroll
 
-    if (scroll_type == NO_SCROLLING){
+    if (scroll_type == NO_SCROLLING)
+    {
         uint8_t cmd[] = {
             0x00,
             0X2E};
-//        i2c_write_blocking(oled->i2c, oled->i2c_address, cmd, sizeof(cmd), false);
+        //        i2c_write_blocking(oled->i2c, oled->i2c_address, cmd, sizeof(cmd), false);
         myI2cWriteBlocking(oled, cmd, sizeof(cmd), "oledSet_scrolling");
         oled->scroll_type = scroll_type;
         return;
     }
 
-    if ((scroll_type == DIAGONAL_LEFT) || (scroll_type == DIAGONAL_RIGHT)){
+    if ((scroll_type == DIAGONAL_LEFT) || (scroll_type == DIAGONAL_RIGHT))
+    {
         uint8_t cmd[] = {
             0x00,
-            0X2E,       // deactivate current scroll mode
-            0xA3,       // vertical scroll area 
+            0X2E, // deactivate current scroll mode
+            0xA3, // vertical scroll area
             0x00,
             (oled->height - 1),
             scroll_type,
@@ -381,47 +393,46 @@ void oledSet_scrolling(t_OledParams *oled, tScrollEffect scroll_type, uint8_t fi
             last_page,
             0x01,
             0x2F};
-//            i2c_write_blocking(oled->i2c, oled->i2c_address, cmd, sizeof(cmd), false);
-            myI2cWriteBlocking(oled, cmd, sizeof(cmd), "oledSet_scrolling");
-            oled->scroll_type = scroll_type;
+        //            i2c_write_blocking(oled->i2c, oled->i2c_address, cmd, sizeof(cmd), false);
+        myI2cWriteBlocking(oled, cmd, sizeof(cmd), "oledSet_scrolling");
+        oled->scroll_type = scroll_type;
         return;
     }
 
-    if ((scroll_type == HORIZONTAL_RIGHT) || (scroll_type == HORIZONTAL_LEFT)){
+    if ((scroll_type == HORIZONTAL_RIGHT) || (scroll_type == HORIZONTAL_LEFT))
+    {
         uint8_t cmd[] = {
             0x00,
-            0X2E,           // deactivate current scroll mode
+            0X2E, // deactivate current scroll mode
             scroll_type,
             0x00,
             first_page,
             0x00,
             last_page,
-            0x00,           // dummy byte
-            0xFF,           // dummy byte
+            0x00, // dummy byte
+            0xFF, // dummy byte
             0x2F};
-//        i2c_write_blocking(oled->i2c, oled->i2c_address, cmd, sizeof(cmd), false);
+        //        i2c_write_blocking(oled->i2c, oled->i2c_address, cmd, sizeof(cmd), false);
         myI2cWriteBlocking(oled, cmd, sizeof(cmd), "oledSet_scrolling");
         oled->scroll_type = scroll_type;
         return;
     }
 }
 
-
 void oledSet_contrast(t_OledParams *oled, uint8_t contrast)
 {
-uint8_t cmd[] = {
+    uint8_t cmd[] = {
         0x00,
         0x81,
-        contrast
-    };
-//    i2c_write_blocking(oled->i2c, oled->i2c_address, cmd, sizeof(cmd), false);
+        contrast};
+    //    i2c_write_blocking(oled->i2c, oled->i2c_address, cmd, sizeof(cmd), false);
     myI2cWriteBlocking(oled, cmd, sizeof(cmd), "oledSet_contrast");
 
     // i2c_start();
     // i2c_send(i2c_address << 1); // address + write
     // i2c_send(0x00); // command
     // i2c_send(0x81); // deativate scrol
-    // i2c_send(contrast); 
+    // i2c_send(contrast);
     // i2c_stop();
 }
 
@@ -435,34 +446,36 @@ void oledClear(t_OledParams *oled, tColor color)
     {
         memset(&oled->buffer, 0x00, oled->bufsize);
     }
-    oled->X=0;
-    oled->Y=0;
+    oled->X = 0;
+    oled->Y = 0;
 }
 
 void oledDisplay(t_OledParams *oled)
 {
-    uint8_t     txBuf[144];
-    uint16_t    bufIndex;
-    uint16_t    index = 0;
-    uint16_t    bytesToSend = 0;
+    uint8_t txBuf[144];
+    uint16_t bufIndex;
+    uint16_t index = 0;
+    uint16_t bytesToSend = 0;
 
     for (uint8_t page = 0; page < oled->pages; page++)
     {
         if (oled->ctlrType == CTRL_SH1106)
         {
             uint8_t cmd[] = {
-                0x00,           // command
-                0xB0 + page,    // set page
-                0x00,           // lower columns address =0
-                0x10};          // upper columns address =0
+                0x00,        // command
+                0xB0 + page, // set page
+                0x00,        // lower columns address =0
+                0x10};       // upper columns address =0
             myI2cWriteBlocking(oled, cmd, sizeof(cmd), "oledDisplay");
-        } else {
+        }
+        else
+        {
             uint8_t cmd[] = {
-                0x00,               // command
-                0xB0 + page,        // set page
-                0x21,               // column address
-                0x00,               // first column =0
-                oled->width - 1};   // last column
+                0x00,             // command
+                0xB0 + page,      // set page
+                0x21,             // column address
+                0x00,             // first column =0
+                oled->width - 1}; // last column
             myI2cWriteBlocking(oled, cmd, sizeof(cmd), "oledDisplay");
         }
 
@@ -471,21 +484,22 @@ void oledDisplay(t_OledParams *oled)
         // i2c_send(i2c_address << 1); // address + write
         // i2c_send(0x40); // data
 
-        txBuf[0]    = 0x40;
-        bufIndex    = 1;
+        txBuf[0] = 0x40;
+        bufIndex = 1;
         bytesToSend = oled->width + 1;
 
-        if(oled->usingOffset){
-        // send two dummy bytes if the width of the display
-        //  is > 128 pixels
-            txBuf[1]    = 0x00;
-            txBuf[2]    = 0x00;
-            bufIndex    = 3;
+        if (oled->usingOffset)
+        {
+            // send two dummy bytes if the width of the display
+            //  is > 128 pixels
+            txBuf[1] = 0x00;
+            txBuf[2] = 0x00;
+            bufIndex = 3;
             bytesToSend += 2;
         }
-    // copy the bit map from the structure buffer to our local buffer
+        // copy the bit map from the structure buffer to our local buffer
         memcpy(&txBuf[bufIndex], &oled->buffer[index], oled->width);
-        //i2c_write_blocking(oled->i2c, oled->i2c_address, txBuf, bytesToSend, false);
+        // i2c_write_blocking(oled->i2c, oled->i2c_address, txBuf, bytesToSend, false);
         myI2cWriteBlocking(oled, txBuf, bytesToSend, "oledDisplay");
         index += oled->width;
     }
@@ -501,8 +515,9 @@ void oledDraw_byte(t_OledParams *oled, uint8_t x, uint8_t y, uint8_t b, tColor c
 
     uint_fast16_t buffer_index = y / 8 * oled->width + x;
 
-    if (oled->fontInverted) {
-        b^=255;
+    if (oled->fontInverted)
+    {
+        b ^= 255;
     }
 
     if (oled->color == WHITE)
@@ -517,7 +532,7 @@ void oledDraw_byte(t_OledParams *oled, uint8_t x, uint8_t y, uint8_t b, tColor c
         }
         else
         {
-            uint16_t w = (uint16_t) b << (y % 8);
+            uint16_t w = (uint16_t)b << (y % 8);
             if (buffer_index < oled->bufsize)
             {
                 oled->buffer[buffer_index] |= (w & 0xFF);
@@ -528,7 +543,9 @@ void oledDraw_byte(t_OledParams *oled, uint8_t x, uint8_t y, uint8_t b, tColor c
                 oled->buffer[buffer_index2] |= (w >> 8);
             }
         }
-    } else {
+    }
+    else
+    {
         // If the y position matches a page, then it goes quicker
         if (y % 8 == 0)
         {
@@ -536,8 +553,10 @@ void oledDraw_byte(t_OledParams *oled, uint8_t x, uint8_t y, uint8_t b, tColor c
             {
                 oled->buffer[buffer_index] &= ~b;
             }
-        } else {
-            uint16_t w = (uint16_t) b << (y % 8);
+        }
+        else
+        {
+            uint16_t w = (uint16_t)b << (y % 8);
             if (buffer_index < oled->bufsize)
             {
                 oled->buffer[buffer_index] &= ~(w & 0xFF);
@@ -552,7 +571,7 @@ void oledDraw_byte(t_OledParams *oled, uint8_t x, uint8_t y, uint8_t b, tColor c
     return;
 }
 
-void oledDraw_bytes(t_OledParams *oled, uint8_t x, uint8_t y, const uint8_t* data, uint8_t size, tFontScaling scaling, tColor color, bool useProgmem)
+void oledDraw_bytes(t_OledParams *oled, uint8_t x, uint8_t y, const uint8_t *data, uint8_t size, tFontScaling scaling, tColor color, bool useProgmem)
 {
     for (uint8_t column = 0; column < size; column++)
     {
@@ -572,7 +591,7 @@ void oledDraw_bytes(t_OledParams *oled, uint8_t x, uint8_t y, const uint8_t* dat
                 }
             }
 
-            // Output 2 times to strech hozizontally            
+            // Output 2 times to strech hozizontally
             oledDraw_byte(oled, x, y, w & 0xFF, color);
             oledDraw_byte(oled, x, y + 8, (w >> 8), color);
             x++;
@@ -596,38 +615,38 @@ size_t oledDraw_character(t_OledParams *oled, uint8_t x, uint8_t y, char c, tFon
     }
 
     // Remap extended Latin1 character codes
-    switch ((unsigned char) c)
+    switch ((unsigned char)c)
     {
-        case 252 /* u umlaut */:
-            c = 127;
-            break;
-        case 220 /* U umlaut */:
-            c = 128;
-            break;
-        case 228 /* a umlaut */:
-            c = 129;
-            break;
-        case 196 /* A umlaut */:
-            c = 130;
-            break;
-        case 246 /* o umlaut */:
-            c = 131;
-            break;
-        case 214 /* O umlaut */:
-            c = 132;
-            break;
-        case 176 /* degree   */:
-            c = 133;
-            break;
-        case 223 /* szlig    */:
-            c = 134;
-            break;
+    case 252 /* u umlaut */:
+        c = 127;
+        break;
+    case 220 /* U umlaut */:
+        c = 128;
+        break;
+    case 228 /* a umlaut */:
+        c = 129;
+        break;
+    case 196 /* A umlaut */:
+        c = 130;
+        break;
+    case 246 /* o umlaut */:
+        c = 131;
+        break;
+    case 214 /* O umlaut */:
+        c = 132;
+        break;
+    case 176 /* degree   */:
+        c = 133;
+        break;
+    case 223 /* szlig    */:
+        c = 134;
+        break;
     }
 
-    uint16_t font_index = (c - 32)*6;
+    uint16_t font_index = (c - 32) * 6;
 
     // Invalid character code/font index
-    if (font_index >= sizeof (oled_font6x8))
+    if (font_index >= sizeof(oled_font6x8))
     {
         return 0;
     }
@@ -636,7 +655,7 @@ size_t oledDraw_character(t_OledParams *oled, uint8_t x, uint8_t y, char c, tFon
     return 1;
 }
 
-void oledDraw_string(t_OledParams *oled, uint8_t x, uint8_t y, const char* s, tFontScaling scaling, tColor color)
+void oledDraw_string(t_OledParams *oled, uint8_t x, uint8_t y, const char *s, tFontScaling scaling, tColor color)
 {
     while (*s)
     {
@@ -653,7 +672,7 @@ void oledDraw_string(t_OledParams *oled, uint8_t x, uint8_t y, const char* s, tF
     }
 }
 
-void oledDraw_bitmap(t_OledParams *oled, uint8_t x, uint8_t y, uint8_t bitmap_width, uint8_t bitmap_height, const uint8_t* data, tColor color)
+void oledDraw_bitmap(t_OledParams *oled, uint8_t x, uint8_t y, uint8_t bitmap_width, uint8_t bitmap_height, const uint8_t *data, tColor color)
 {
     uint8_t num_pages = (bitmap_height + 7) / 8;
     for (uint8_t page = 0; page < num_pages; page++)
@@ -664,7 +683,7 @@ void oledDraw_bitmap(t_OledParams *oled, uint8_t x, uint8_t y, uint8_t bitmap_wi
     }
 }
 
-void oledDraw_bitmap_P(t_OledParams *oled, uint8_t x, uint8_t y, uint8_t bitmap_width, uint8_t bitmap_height, const uint8_t* data, tColor color)
+void oledDraw_bitmap_P(t_OledParams *oled, uint8_t x, uint8_t y, uint8_t bitmap_width, uint8_t bitmap_height, const uint8_t *data, tColor color)
 {
     uint8_t num_pages = (bitmap_height + 7) / 8;
     for (uint8_t page = 0; page < num_pages; page++)
@@ -684,7 +703,7 @@ void oledDraw_pixel(t_OledParams *oled, uint8_t x, uint8_t y, tColor color)
 
     if (color == WHITE)
     {
-        oled->buffer[x + (y / 8) *oled-> width] |= (1 << (y & 7)); // set bit 
+        oled->buffer[x + (y / 8) * oled->width] |= (1 << (y & 7)); // set bit
     }
     else
     {
@@ -693,7 +712,7 @@ void oledDraw_pixel(t_OledParams *oled, uint8_t x, uint8_t y, tColor color)
 }
 
 void oledDraw_line(t_OledParams *oled, uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1, tColor color)
-{        
+{
     // Algorithm copied from Wikipedia
     int16_t dx = abs((int16_t)(x1) - (int16_t)(x0));
     int16_t sx = x0 < x1 ? 1 : -1;
@@ -701,7 +720,6 @@ void oledDraw_line(t_OledParams *oled, uint8_t x0, uint8_t y0, uint8_t x1, uint8
     int16_t sy = y0 < y1 ? 1 : -1;
     int16_t err = dx + dy;
     int16_t e2;
-
 
     while (1)
     {
@@ -797,7 +815,7 @@ void oledDraw_rectangle(t_OledParams *oled, uint8_t x0, uint8_t y0, uint8_t x1, 
         y1 = tmp;
     }
     if (fillMode == SOLID)
-    {        
+    {
         for (uint8_t y = y0; y <= y1; y++)
         {
             oledDraw_line(oled, x0, y, x1, y, color);
@@ -837,19 +855,19 @@ void oledScroll_up(t_OledParams *oled, uint8_t num_lines, uint8_t delay_ms)
         num_lines -= scroll_pages * 8;
     }
 
-    // Scroll the remainder line by line 
-    bool need_refresh=true;
+    // Scroll the remainder line by line
+    bool need_refresh = true;
     if (num_lines > 0)
     {
         uint32_t start = to_ms_since_boot(get_absolute_time());
         uint16_t target_time = 0;
-        
+
         for (uint8_t i = 0; i < num_lines; i++)
         {
-            // Scroll everything 1 line up            
+            // Scroll everything 1 line up
             for (uint8_t j = 0; j < oled->pages; j++)
             {
-                uint16_t index = j*oled->width;
+                uint16_t index = j * oled->width;
                 uint16_t index2 = index + oled->width;
                 for (uint8_t x = 0; x < oled->width; x++)
                 {
@@ -866,45 +884,47 @@ void oledScroll_up(t_OledParams *oled, uint8_t num_lines, uint8_t delay_ms)
                     index2++;
                 }
             }
-            need_refresh    = true;
-            target_time     += delay_ms;
-            
+            need_refresh = true;
+            target_time += delay_ms;
+
             // Refresh the display only if we have some time
             uint32_t now = to_ms_since_boot(get_absolute_time());
             if ((now - start) < target_time)
             {
                 oledDisplay(oled);
-                need_refresh=false;
+                need_refresh = false;
             }
-                       
         }
     }
-    
+
     if (need_refresh)
     {
         oledDisplay(oled);
     }
 }
 
-
 void oledSetCursor(t_OledParams *oled, uint8_t x, uint8_t y)
 {
-	if (oled->ttyMode) return; // in TTY mode position the cursor has no effect
-	oled->X = x;
-	oled->Y = y;
+    if (oled->ttyMode)
+        return; // in TTY mode position the cursor has no effect
+    oled->X = x;
+    oled->Y = y;
 }
 
-size_t oledPrintfXy(t_OledParams *oled, uint8_t x, uint8_t y, const char *format, ...) {
+size_t oledPrintfXy(t_OledParams *oled, uint8_t x, uint8_t y, const char *format, ...)
+{
     va_list arg;
     va_start(arg, format);
     char temp[64];
-    char* buffer = temp;
+    char *buffer = temp;
     size_t len = vsnprintf(temp, sizeof(temp), format, arg);
     va_end(arg);
-    if (len > sizeof(temp) - 1) {
-//        buffer = new char[len + 1];
+    if (len > sizeof(temp) - 1)
+    {
+        //        buffer = new char[len + 1];
         buffer = malloc(len + 1);
-        if (!buffer) {
+        if (!buffer)
+        {
             return 0;
         }
         va_start(arg, format);
@@ -914,36 +934,41 @@ size_t oledPrintfXy(t_OledParams *oled, uint8_t x, uint8_t y, const char *format
     oled->X = x;
     oled->Y = y;
 
-    len = oledWriteStr(oled, (const uint8_t*) buffer, len);
-    if (buffer != temp) {
-//        delete[] buffer;
+    len = oledWriteStr(oled, (const uint8_t *)buffer, len);
+    if (buffer != temp)
+    {
+        //        delete[] buffer;
         free(buffer);
     }
 
     return len;
 }
 
-size_t oledPrintf(t_OledParams *oled, const char *format, ...) {
+size_t oledPrintf(t_OledParams *oled, const char *format, ...)
+{
     va_list arg;
     va_start(arg, format);
     char temp[64];
-    char* buffer = temp;
+    char *buffer = temp;
     size_t len = vsnprintf(temp, sizeof(temp), format, arg);
     va_end(arg);
-    if (len > sizeof(temp) - 1) {
+    if (len > sizeof(temp) - 1)
+    {
         buffer = malloc(len + 1);
-//        buffer = new char[len + 1];
-        if (!buffer) {
+        //        buffer = new char[len + 1];
+        if (!buffer)
+        {
             return 0;
         }
         va_start(arg, format);
         vsnprintf(buffer, len + 1, format, arg);
         va_end(arg);
     }
-    len = oledWriteStr(oled, (const uint8_t*) buffer, len);
-    if (buffer != temp) {
+    len = oledWriteStr(oled, (const uint8_t *)buffer, len);
+    if (buffer != temp)
+    {
         free(buffer);
-//        delete[] buffer;
+        //        delete[] buffer;
     }
 
     return len;
@@ -951,74 +976,77 @@ size_t oledPrintf(t_OledParams *oled, const char *format, ...) {
 
 size_t oledWriteStr(t_OledParams *oled, const uint8_t *buffer, size_t len)
 {
-    //size_t n = 0;
-    for (size_t ix=0; ix<len; ix++)
+    // size_t n = 0;
+    for (size_t ix = 0; ix < len; ix++)
     {
-		// If CR and LF are found consecutive, only one is processed
-    	// If two or more CR are consecutive, both are processed
-    	// If two or more LF are consecutive, both are processed
-    	if (buffer[ix] == '\r')
-		{
-        // carriage return found
-    		oled->X = 0;
-			oled->Y += (OLED_FONT_HEIGHT);
-			if (buffer[ix+1] == '\n') {
-				ix++; // skip char
-			}
-    		oled->X = 0;
-		}
-		else if (buffer[ix] == '\n')
-		{
-        // 'C' style CRLF
-			oled->X = 0;                        // carriage return
-			oled->Y += (OLED_FONT_HEIGHT);      // line feed
-			if (buffer[ix+1] == '\r') {
-				ix++; // skip char
-			}
-		}
-		else if (*(buffer+ix) == '\f')
-		{
-			// FORM FEED
-			oledScroll_up(oled, oled->height, 0);
-			oled->X = 0;
-			oled->Y = 0;
-		}
-		else
-		{
-			oledWriteChar(oled, buffer[ix]);
-		}
+        // If CR and LF are found consecutive, only one is processed
+        // If two or more CR are consecutive, both are processed
+        // If two or more LF are consecutive, both are processed
+        if (buffer[ix] == '\r')
+        {
+            // carriage return found
+            oled->X = 0;
+            oled->Y += (OLED_FONT_HEIGHT);
+            if (buffer[ix + 1] == '\n')
+            {
+                ix++; // skip char
+            }
+            oled->X = 0;
+        }
+        else if (buffer[ix] == '\n')
+        {
+            // 'C' style CRLF
+            oled->X = 0;                   // carriage return
+            oled->Y += (OLED_FONT_HEIGHT); // line feed
+            if (buffer[ix + 1] == '\r')
+            {
+                ix++; // skip char
+            }
+        }
+        else if (*(buffer + ix) == '\f')
+        {
+            // FORM FEED
+            oledScroll_up(oled, oled->height, 0);
+            oled->X = 0;
+            oled->Y = 0;
+        }
+        else
+        {
+            oledWriteChar(oled, buffer[ix]);
+        }
 
-		if (oled->ttyMode)
-		{
-			// Scroll up if cursor position is out of screen
-			if (oled->Y >= oled->height)
-			{
-				oledScroll_up(oled, OLED_FONT_HEIGHT, 0);
-				oled->Y = oled->height-OLED_FONT_HEIGHT;
-			}
-		}
+        if (oled->ttyMode)
+        {
+            // Scroll up if cursor position is out of screen
+            if (oled->Y >= oled->height)
+            {
+                oledScroll_up(oled, OLED_FONT_HEIGHT, 0);
+                oled->Y = oled->height - OLED_FONT_HEIGHT;
+            }
+        }
     }
-    if (oled->ttyMode) oledDisplay(oled);
+    if (oled->ttyMode)
+        oledDisplay(oled);
     return len;
 }
 
 size_t oledWriteChar(t_OledParams *oled, uint8_t c)
 {
-	int n=1;
-	n= oledDraw_character(oled, oled->X, oled->Y, c, oled->scaling, oled->color);
-	oled->X+= OLED_FONT_WIDTH;
-	return n;
+    int n = 1;
+    n = oledDraw_character(oled, oled->X, oled->Y, c, oled->scaling, oled->color);
+    oled->X += OLED_FONT_WIDTH;
+    return n;
 }
-
 
 void oledSetTTYMode(t_OledParams *oled, bool enabled)
 {
-	oled->ttyMode = enabled;
+    oled->ttyMode = enabled;
 }
 
 void oledUseOffset(t_OledParams *oled, bool enabled)
 {
-    if(oled->ctlrType == CTRL_SH1106){
+    if (oled->ctlrType == CTRL_SH1106)
+    {
         oled->usingOffset = enabled;
     }
 }
@@ -1027,73 +1055,80 @@ void oledUseOffset(t_OledParams *oled, bool enabled)
     are reworked from ssd1306.c Copyright (c) 2021 David Schramm.
 */
 
-uint32_t oledBmp_get_val(const uint8_t *data, const size_t offset, uint8_t size) {
-    switch(size) {
+uint32_t oledBmp_get_val(const uint8_t *data, const size_t offset, uint8_t size)
+{
+    switch (size)
+    {
     case 1:
         return data[offset];
     case 2:
-        return data[offset]|(data[offset+1]<<8);
+        return data[offset] | (data[offset + 1] << 8);
     case 4:
-        return data[offset]|(data[offset+1]<<8)|(data[offset+2]<<16)|(data[offset+3]<<24);
+        return data[offset] | (data[offset + 1] << 8) | (data[offset + 2] << 16) | (data[offset + 3] << 24);
     default:
         __builtin_unreachable();
     }
     __builtin_unreachable();
 }
 
-void oledBmp_show_image_with_offset(t_OledParams *oled, const uint8_t *data, const long size, uint32_t x_offset, uint32_t y_offset) {
-    if(size<54) // data smaller than header
+void oledBmp_show_image_with_offset(t_OledParams *oled, const uint8_t *data, const long size, uint32_t x_offset, uint32_t y_offset)
+{
+    if (size < 54) // data smaller than header
         return;
 
-    const uint32_t bfOffBits        = oledBmp_get_val(data, 10, 4);
-    const uint32_t biSize           = oledBmp_get_val(data, 14, 4);
-    const int32_t biWidth           = (int32_t) oledBmp_get_val(data, 18, 4);
-    const int32_t biHeight          = (int32_t) oledBmp_get_val(data, 22, 4);
-    const uint16_t biBitCount       = (uint16_t) oledBmp_get_val(data, 28, 2);
-    const uint32_t biCompression    = oledBmp_get_val(data, 30, 4);
+    const uint32_t bfOffBits = oledBmp_get_val(data, 10, 4);
+    const uint32_t biSize = oledBmp_get_val(data, 14, 4);
+    const int32_t biWidth = (int32_t)oledBmp_get_val(data, 18, 4);
+    const int32_t biHeight = (int32_t)oledBmp_get_val(data, 22, 4);
+    const uint16_t biBitCount = (uint16_t)oledBmp_get_val(data, 28, 2);
+    const uint32_t biCompression = oledBmp_get_val(data, 30, 4);
 
-    if(biBitCount!=1) // image not monochrome
+    if (biBitCount != 1) // image not monochrome
         return;
 
-    if(biCompression!=0) // image compressed
+    if (biCompression != 0) // image compressed
         return;
 
-    const int table_start=14+biSize;
+    const int table_start = 14 + biSize;
     uint8_t color_val;
 
-    for(uint8_t i=0; i<2; ++i) {
-        if(!((data[table_start+i*4]<<16)|(data[table_start+i*4+1]<<8)|data[table_start+i*4+2])) {
-            color_val=i;
+    for (uint8_t i = 0; i < 2; ++i)
+    {
+        if (!((data[table_start + i * 4] << 16) | (data[table_start + i * 4 + 1] << 8) | data[table_start + i * 4 + 2]))
+        {
+            color_val = i;
             break;
         }
     }
 
-    uint32_t bytes_per_line=(biWidth/8)+(biWidth&7?1:0);
-    if(bytes_per_line&3)
-        bytes_per_line=(bytes_per_line^(bytes_per_line&3))+4;
+    uint32_t bytes_per_line = (biWidth / 8) + (biWidth & 7 ? 1 : 0);
+    if (bytes_per_line & 3)
+        bytes_per_line = (bytes_per_line ^ (bytes_per_line & 3)) + 4;
 
-    const uint8_t *img_data=data+bfOffBits;
+    const uint8_t *img_data = data + bfOffBits;
 
-    int step=biHeight>0?-1:1;
-    int border=biHeight>0?-1:biHeight;
-    for(uint32_t y=biHeight>0?biHeight-1:0; y!=border; y+=step) {
-        for(uint32_t x=0; x<biWidth; ++x) {
-            if(((img_data[x>>3]>>(7-(x&7)))&1)==color_val)
-                oledDraw_pixel(oled, x_offset+x, y_offset+y, oled->color);
+    int step = biHeight > 0 ? -1 : 1;
+    int border = biHeight > 0 ? -1 : biHeight;
+    for (uint32_t y = biHeight > 0 ? biHeight - 1 : 0; y != border; y += step)
+    {
+        for (uint32_t x = 0; x < biWidth; ++x)
+        {
+            if (((img_data[x >> 3] >> (7 - (x & 7))) & 1) == color_val)
+                oledDraw_pixel(oled, x_offset + x, y_offset + y, oled->color);
         }
-        img_data+=bytes_per_line;
+        img_data += bytes_per_line;
     }
 }
 
-void oledBmp_show_image(t_OledParams *oled, const uint8_t *data, const long size) {
+void oledBmp_show_image(t_OledParams *oled, const uint8_t *data, const long size)
+{
     oledBmp_show_image_with_offset(oled, data, size, 0, 0);
 }
 
-
 // ************************ U8g2 wrappers ************************
-void oledDrawString(t_OledParams *oled, uint8_t col, uint8_t row, const char* s, tFontScaling scaling, tColor color)
+void oledDrawString(t_OledParams *oled, uint8_t col, uint8_t row, const char *s, tFontScaling scaling, tColor color)
 {
-    oledDraw_string(oled, ToX(col),ToY(row),s,scaling,color);
+    oledDraw_string(oled, ToX(col), ToY(row), s, scaling, color);
 }
 
 void oledInverse(t_OledParams *oled)
@@ -1110,26 +1145,25 @@ void oledNoInverse(t_OledParams *oled)
 
 void oledSet_font_inverted(t_OledParams *oled, bool enabled)
 {
-    oled->fontInverted=enabled;
+    oled->fontInverted = enabled;
 }
 
 uint8_t oledToCol(uint8_t x)
 {
-    return(x/OLED_FONT_WIDTH);
+    return (x / OLED_FONT_WIDTH);
 }
 
 uint8_t oledToRow(uint8_t y)
 {
-    return(y/OLED_FONT_HEIGHT);
+    return (y / OLED_FONT_HEIGHT);
 }
 
 uint8_t oledToX(uint8_t col)
 {
-    return(col*OLED_FONT_WIDTH);
+    return (col * OLED_FONT_WIDTH);
 }
 
 uint8_t oledToY(uint8_t row)
 {
-    return(row*OLED_FONT_HEIGHT);
+    return (row * OLED_FONT_HEIGHT);
 }
-

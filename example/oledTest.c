@@ -7,8 +7,8 @@
 #include "hardware/i2c.h"
 #include "hardware/timer.h"
 #include "pico/stdlib.h"
-#include "picoOled.h"
-#include "image.h"
+#include "../include/picoOled.h"
+#include "../include/image.h"
 
 #define PICO_LED 25
 #define DEBUG_TRIG 22
