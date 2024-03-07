@@ -20,25 +20,6 @@
 
 t_OledParams g_myOled;
 
-// Initialize the oled structure with the information
-//  required to define the display and then configure it
-void configOled(t_OledParams *oled){
-
-    oled->i2c         = i2c0;
-    oled->SDA_PIN     = 0;
-    oled->SCL_PIN     = 1;
-
-    oled->ctlrType    = CTRL_SH1106;
-    oled->i2c_address = 0x3C;
-    oled->height      = H_64;
-    oled->width       = W_132;
-
-// this will configure the OLED module and then
-//  clear the screen.
-    oledI2cConfig(oled);
-
-}
-
 void pinConfig(void){
 
     // initialise GPIO (Green LED connected to pin 25)
@@ -97,7 +78,7 @@ char msg[] = "\n\n\nHello, world!";
     printf("Hello\n");
 
 // configure the OLED module
-    configOled(&g_myOled);
+    configOled(&g_myOled, i2c0, 0x3c, 0, 1, CTRL_SH1106, H_64, W_132);
 
 // set for TTY mode and print a string
     oledSetTTYMode(&g_myOled, true);

@@ -33,7 +33,7 @@ SOFTWARE.
 #include "hardware/i2c.h"
 #include "hardware/timer.h"
 #include "pico/stdlib.h"
-#include "../include/picoOled.h"
+#include "picoOled.h"
 
 static const uint8_t oled_font6x8[] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, // sp
@@ -205,6 +205,25 @@ void myI2cWriteBlocking(t_OledParams *oled, uint8_t *buf, uint16_t bufSize, char
         oledLogI2cResult(rtnCode, msg);
     if (DO_I2CDATLOGGING)
         oledLogI2cData(buf, bufSize);
+}
+
+// Initialize the oled structure with the information
+//  required to define the display and then configure it
+void configOled(t_OledParams *oled, i2c_inst_t *i2c_instance, int addr, uint8_t sda, uint8_t scl, uint8_t displayController, uint8_t height, uint8_t width)
+{
+
+    oled->i2c = i2c_instance;
+    oled->SDA_PIN = sda;
+    oled->SCL_PIN = scl;
+
+    oled->ctlrType = displayController;
+    oled->i2c_address = addr;
+    oled->height = height;
+    oled->width = width;
+
+    // this will configure the OLED module and then
+    //  clear the screen.
+    oledI2cConfig(oled);
 }
 
 uint8_t oledI2cConfig(t_OledParams *oled)
